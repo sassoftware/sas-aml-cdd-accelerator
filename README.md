@@ -49,14 +49,14 @@ Below are details around execution or usage of the various programs within this 
 
 <details><summary>Batch Execution</summary>
 
-   USAGE: `sas_jobexec.sh -p [program] -t [tenant] -d [debug|DEBUG_MACRO,DEBUG_ALL]`
+   USAGE: `jobexec.sh -p [program] -t [tenant] -d [debug|DEBUG_MACRO,DEBUG_ALL]`
    
-   EXAMPLE: `nohup ./sas_jobexec.sh -p testprogram.sas -t mytenant -d DEBUG_ALL &`
+   EXAMPLE: `nohup ./jobexec.sh -p testprogram.sas -t mytenant -d DEBUG_ALL &`
 
     -p - looks for the program under <repository_root>/programs/
     -t - specifies which tenant your wanting to run against
 
-The batch job will automatically call `<repository_root>/programs/user_autoexec.sas` which has some postgres libnames already available.  You can also call one of the many product autoexecs (e.g. cdd_autoexec;) in your sas program as needed.
+The batch job will automatically call `<repository_root>/programs/user_autoexec.sas` which has some postgres libnames already available.  You can also call one of the many product autoexecs (e.g. aml_autoexec;) in your sas program as needed.
 
 </details>
 
