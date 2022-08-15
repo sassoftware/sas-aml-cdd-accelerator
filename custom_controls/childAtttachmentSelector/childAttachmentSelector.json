@@ -1,0 +1,19 @@
+{
+	"attributes": {
+	  "entityID": {
+	    "type": "DataSource",
+        "required": "true",
+        "displayName": { "defaultText": "Entity ID" }
+	  },
+	  "attachmentID": {
+	    "type": "DataSource",
+        "required": "true",
+        "displayName": { "defaultText": "Field for Attachment ID" }
+	  },
+	  "attachmentName": {
+	    "type": "DataSource",
+        "required": "true",
+        "displayName": { "defaultText": "Field for Attachment Name" }
+	  }
+    }		
+}

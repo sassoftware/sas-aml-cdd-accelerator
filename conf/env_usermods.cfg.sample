@@ -1,0 +1,11 @@
+# Environment Specific Variables
+
+## The base URL for this deployment
+export SITEURL=
+
+## The hostname of the server where PostgreSQL was deployed
+export PGHOST=
+
+## The hostname of the server where one of the elasticsearch nodes was deployed
+export ESHOST=
+

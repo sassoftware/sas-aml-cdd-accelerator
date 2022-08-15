@@ -1,0 +1,6 @@
+<div class="spb-control-padding spb-page-control">
+    <select ng-model="itemSelection"
+        ng-options="item.name for item in ctrl.itemList"
+       ng-change="checkSelection(itemSelection)"
+   </select>
+</div>
