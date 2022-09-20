@@ -17,7 +17,7 @@
 
 %global
     basedir tenant rundate runasofdate
-    PGdbFlavor PGdbHost PGdbPort PGdbAuth PGdbTenant PGdbConnOps
+    PGdbFlavor PGdbHost PGdbPort PGdbAuth PGdbTenant PGdbConnOpts PGConnOpts
     ws_base_url ws_user ws_password ws_token ws_token_dttm access_token 
 ;
 
@@ -119,6 +119,8 @@ aml_71_autoexec - used with AML 7 code porting
 aml_segmentation_autoexec - sets core, svi_alerts
 */
 
+%cdd_autoexec();
+
 %let PGdbFlavor=postgres;
 %let PGdbAuth=PGdbAuth;
 %let PGdbHost=&pghost;
@@ -130,6 +132,10 @@ aml_segmentation_autoexec - sets core, svi_alerts
      authdomain="&PGdbAuth." 
      conopts='UseDeclareFetch=1;sslmode=required' 
      DBMAX_TEXT=32767
+     );
+%let PGConnOpts=%str(
+     &PGdbConnOpts.
+     database="&PGdbTenant."
      );
 
 libname ids &PGdbFlavor. &PGdbConnOpts. schema="identities" database="SharedServices";
