@@ -36,14 +36,14 @@ terraform.tfstate*
 # Accelerator User-specific
 
 *.cfg
-data/*
-etlops/
-formats/
-log/
-payload/
-source/
+/data/*
+/etlops/
+/formats/
+/log/
+/payload/
+/source/
 
-!data/cmndata/fsc_time_dim*
+!/data/cmndata/fsc_time_dim*
 
 ## OS Generated
 
