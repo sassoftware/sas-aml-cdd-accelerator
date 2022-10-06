@@ -37,11 +37,11 @@ terraform.tfstate*
 
 *.cfg
 /data/*
-/etlops/
-/formats/
-/log/
-/payload/
-/source/
+/etlops/*
+/formats/*
+/log/*
+/payload/*
+/source/*
 
 !/data/cmndata/fsc_time_dim*
 
