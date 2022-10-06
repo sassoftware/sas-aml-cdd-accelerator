@@ -17,7 +17,7 @@
 
 %global
     basedir tenant rundate runasofdate
-    PGdbFlavor PGdbHost PGdbPort PGdbAuth PGdbTenant PGdbConnOpts PGConnOpts
+    PGdbFlavor PGdbHost PGdbPort PGdbAuth PGdbTenant PGdbConnOpts PGConnOpts coredbConnOpts
     ws_base_url ws_user ws_password ws_token ws_token_dttm access_token 
 ;
 
@@ -82,6 +82,9 @@ options mstored dbidirectexec compress=yes mexecsize=128K minoperator;
         bl_options_cash_flow_fact
         bl_options_alert
         bl_options_alert_comment
+
+        defaultEndDate defaultBeginDate userRundate bat_abort bat_errmsg pid ppid metric_id processParentId jobId globalerr
+        rundate runasofdate errThreshold
 ;
 
 %let bulkloadThreshold=10000000;/*500 default moving to 10 M to keep from using BL till we have fix*/
@@ -94,7 +97,9 @@ options mstored dbidirectexec compress=yes mexecsize=128K minoperator;
 %let defaultBeginDate=10OCT2019 00:00:00;
 %let useRundate=Y;
 %let bat_abort=N;
+%let pid=0;
 %let ppid=0;
+%let errThreshold=1000000;
 
 /*--------------------------
  * Oauth Access Token
@@ -103,23 +108,34 @@ options mstored dbidirectexec compress=yes mexecsize=128K minoperator;
 %fdx_ws_get_oauth_token();
 
 /*--------------------------
- * Postgres Connections
+ * Solution Autoexecs
  *--------------------------*/
 
 /*
-fcf_autoexec - sets core, corevw
+ fcf_autoexec - sets core, corevw
 
-------- Below all calls the fcf_autoexec --------
-aml_autoexec - sets watchlist, amlkc, amlprep
-cdd_autoexec - sets cddkc, cddprep
-rr_autoexec - sets fdhmetadata, fdhdata
-fcf_va_autoexec - sets caslib: fdhdata, fdhmetadata, svi_alerts, svi_vsd_service
-aml_alert_triage_autoexec - sets core, svi_alerts, kc
-aml_71_autoexec - used with AML 7 code porting
-aml_segmentation_autoexec - sets core, svi_alerts
-*/
+------- Below all calls the fcf_autoexec -----------------------------------------------------
+| aml_autoexec              | Sets watchlist, amlkc, amlprep                                 |
+| cdd_autoexec              | Sets cddkc, cddprep                                            |
+| rr_autoexec               | Sets fdhmetadata, fdhdata                                      |
+| fcf_va_autoexec           | Sets caslib: fdhdata, fdhmetadata, svi_alerts, svi_vsd_service |
+| aml_alert_triage_autoexec | Sets core, svi_alerts, kc                                      |
+| aml_71_autoexec           | Used with AML 7 code porting                                   |
+| aml_segmentation_autoexec | Sets core, svi_alerts                                          |
+----------------------------------------------------------------------------------------------*/
 
+*%fcf_autoexec();
+*%aml_autoexec(); 
 %cdd_autoexec();
+*%rr_autoexec();
+*%fcf_va_autoexec();
+*%aml_alert_triage_autoexec();
+*%aml_71_autoexec();
+*%aml_segmentation_autoexec();
+
+/*--------------------------
+ * Postgres Connections
+ *--------------------------*/
 
 %let PGdbFlavor=postgres;
 %let PGdbAuth=PGdbAuth;
@@ -133,10 +149,17 @@ aml_segmentation_autoexec - sets core, svi_alerts
      conopts='UseDeclareFetch=1;sslmode=required' 
      DBMAX_TEXT=32767
      );
+
 %let PGConnOpts=%str(
-     &PGdbConnOpts.
+     &PGdbConnOpts
      database="&PGdbTenant."
      );
+
+%let coredbConnOpts=%str(
+     &PGdbConnOpts
+     database="&PGdbTenant."
+     );
+
 
 libname ids &PGdbFlavor. &PGdbConnOpts. schema="identities" database="SharedServices";
 libname audit &PGdbFlavor. &PGdbConnOpts. schema="audit" database="SharedServices";
@@ -227,6 +250,9 @@ libname stg_ca   '!FCFDATA/stage/ca';
 libname stg_xref '!FCFDATA/stage/xref';
 libname stg_hist '!FCFDATA/stage/hist_core_stg';
 
+
+libname stg_land '/cfd/sasdata/stg_land';
+
 /*---------------------
  * Match Code Settings
  *---------------------*/
@@ -265,10 +291,15 @@ options DQSETUPLOC="/opt/sas/spre/home/share/refdata/qkb/ci/31";
 /*----------------
  * Get RUNASOFDATE
  *----------------*/
-/*
 %fdx_get_runasofdate;
 %put NOTE: rundate=&rundate. | runasofdate=&runasofdate.;
-*/
+
+/*------------------------
+ * Backwards Compatibility
+ *------------------------*/
+%global segKCSchema;
+%let segKCSchema=core;
+libname core (db_core);
 
 %MACRO_END:
 %mend;
