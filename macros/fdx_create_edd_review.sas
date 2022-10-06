@@ -10,30 +10,33 @@
 /--------------------------------------------------------------------------------------------------------------------
 / NAME                DESCRIPTION
 /--------------------------------------------------------------------------------------------------------------------
-/ score_threshold     The lower limit score defined in our alert population
+/ rv_queue            The queue we will disposition alerts for
 / rv_rel              The object_relationship_nm for our relationship id
 / rv_desc             The description supplied for each populated review
 /--------------------------------------------------------------------------------------------------------------------
-/ EXAMPLE: %fdx_crrrvw_create_json(score_threshold=85,
-/                                  rv_rel=PTY,
-/                                  rv_desc=);
+/ EXAMPLE: %fdx_create_edd_review(rv_queue=crr_high_scores_queue,
+/                                 rv_rel=PTY,
+/                                 rv_desc=);
 /--------------------------------------------------------------------------------------------------------------------
 / HISTORY
 /--------------------------------------------------------------------------------------------------------------------
 / 09SEPT2022    ninewb    Initial Release
 /--------------------------------------------------------------------------------------------------------------------*/
 
-%macro fdx_create_edd_review(score_threshold=,rv_rel=,rv_desc=);
+%macro fdx_create_edd_review(rv_queue=,rv_rel=,rv_desc=);
+
+%local rv_queue rv_rel rv_desc;
 
 /* Validate paramters */
-%if %length(&score_threshold) eq 0 %then %do;
-	%let score_threshold=85;
+%if %length(&rv_queue) eq 0 %then %do;
+	%put ERROR: A queue was not specified.;
+        %goto MACRO_END;
 %end;
 %if %length(&rv_rel) eq 0 %then %do;
-	%let rv_rel=%superq(109514);
+	%let rv_rel=109514;
 %end;
 %if %length(&rv_desc) eq 0 %then %do;
-	%let rv_desc=%superq(Auto processed to EDD Review through batch creation execution.);
+	%let rv_desc=%str(Auto processed to EDD Review through batch creation execution.);
 %end;
 
 /* This a collection of all alerts that have existing active reviews */
@@ -42,12 +45,12 @@ create table disp_to_existing as
     SELECT DISTINCT a.alert_id,a.actionable_entity_id, c.edd_report_id
 	FROM alerts.tdc_alert a
 	INNER JOIN alerts.tdc_alerting_event b
-		ON a.alert_id=b.alert_id
+	ON a.alert_id=b.alert_id
     INNER JOIN fdhdata.crr_edd_reviews c
         ON a.actionable_entity_id=c.actionable_entity_id
         AND c.Status='ACT'
 	WHERE a.domain_id='crr_domain' 
-		AND a.alert_status_id='ACTIVE';
+	AND a.alert_status_id='ACTIVE';
 quit;
 
 %fsccheckrc;
@@ -63,16 +66,17 @@ create table disp_to_new as
     SELECT DISTINCT a.alert_id,a.actionable_entity_id,d.employee_ind
 	FROM alerts.tdc_alert a
 	INNER JOIN alerts.tdc_alerting_event b
-		ON a.alert_id=b.alert_id
+	ON a.alert_id=b.alert_id
     LEFT JOIN fdhdata.crr_edd_reviews c
         ON a.actionable_entity_id=c.actionable_entity_id
         AND c.Status='ACT'
     INNER JOIN corevw.party_dim d
         ON a.actionable_entity_id=d.party_number
 	WHERE a.domain_id='crr_domain' 
-		AND a.alert_status_id='ACTIVE'
+	AND a.alert_status_id='ACTIVE'
         AND c.actionable_entity_id IS MISSING
-        AND a.curr_score_val=&score_threshold.;
+        AND a.queue_id=&rv_queue.;
+/*        AND a.curr_score_val=&score_threshold.; */
 quit;
 
 %fsccheckrc;
@@ -80,7 +84,6 @@ quit;
    %put NOTE: Failed to get count of high alerts that do not have existing active reviews;
    %goto MACRO_END;
 %end;
-
 
 /* Get count of alerts to be dispositioned to an existing review */
 proc sql noprint;
@@ -93,6 +96,7 @@ quit;
    %goto MACRO_END;
 %end;
 
+%let adispcnt=&altextcnt;
 %put NOTE: Count of alerts to be dispositioned to an existing review altextcnt=&altextcnt;
 
 %if &altextcnt eq 0 %then %do;
@@ -141,8 +145,8 @@ quit;
 filename dspalrt "%sysfunc(pathname(work))/disp_alert_req.json";
 filename cc_out "%sysfunc(pathname(work))/disp_alert_resp.json";
 
-		proc json out=dspalrt pretty;
-			write values 'dispositionId' "crr_open_review";
+proc json out=dspalrt pretty;		
+	write values 'dispositionId' "crr_open_review";
 			write values 'promptForQueue' false;
 			write values 'promptForActivationTime' false;
 			write values 'promptForDocument' true;
@@ -340,6 +344,7 @@ filename cc_out "/opt/project/payload/disp_alert_resp.json";
 %end; /*loop through each alert in disp_to_new*/
 
 %MACRO_END:
+
 /*
 %if &bat_abort=Y or &syscc=4 %then
 			%do;
